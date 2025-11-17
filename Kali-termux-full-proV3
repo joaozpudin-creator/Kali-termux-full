@@ -1,0 +1,142 @@
+#!/data/data/com.termux/files/usr/bin/bash
+clear
+
+# ===============================
+# KALI TERMUX FULL PRO V3
+# Autor: joaozpudin-creator
+# Script simples, funcional e completo
+# ===============================
+
+# Cores
+RED='\e[91m'; GREEN='\e[92m'; YELLOW='\e[93m'; CYAN='\e[96m'; RESET='\e[0m'
+
+# Banner
+echo -e "${RED}"
+cat << "EOF"
+ ██████╗  █████╗ ██╗     ██╗███████╗██╗   ██╗
+██╔════╝ ██╔══██╗██║     ██║██╔════╝╚██╗ ██╔╝
+██║  ███╗███████║██║     ██║█████╗   ╚████╔╝ 
+██║   ██║██╔══██║██║     ██║██╔══╝    ╚██╔╝  
+╚██████╔╝██║  ██║███████╗███████╗   ██║   
+ ╚═════╝  ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝
+      KALI TERMUX FULL PRO V3
+EOF
+echo -e "${RESET}"
+sleep 2
+
+# ===============================
+# 1. Atualizar Termux
+# ===============================
+echo -e "${YELLOW}[1/9] Atualizando Termux...${RESET}"
+pkg update -y && pkg upgrade -y
+pkg install wget curl git proot-distro python python-pip ruby nano figlet lolcat whiptail -y
+gem install lolcat
+
+# ===============================
+# 2. Instalar Kali Linux
+# ===============================
+echo -e "${YELLOW}[2/9] Instalando Kali Linux via Proot...${RESET}"
+proot-distro install kali
+
+# ===============================
+# 3. Instalar XFCE e VNC
+# ===============================
+echo -e "${YELLOW}[3/9] Instalando XFCE4, VNC e dependências...${RESET}"
+proot-distro login kali -- bash -c "
+apt update -y
+apt upgrade -y
+apt install xfce4 xfce4-goodies tightvncserver neofetch figlet lolcat -y
+apt install arc-theme papirus-icon-theme -y
+"
+
+# ===============================
+# 4. Configuração VNC
+# ===============================
+echo -e "${YELLOW}[4/9] Configurando VNC...${RESET}"
+proot-distro login kali -- bash -c "
+vncserver -kill :1 >/dev/null 2>&1
+mkdir -p ~/.vnc
+cat > ~/.vnc/xstartup <<'EOV'
+#!/bin/sh
+xrdb \$HOME/.Xresources
+startxfce4 &
+EOV
+chmod +x ~/.vnc/xstartup
+"
+
+# ===============================
+# 5. Scripts startvnc / stopvnc
+# ===============================
+echo -e "${YELLOW}[5/9] Criando scripts startvnc / stopvnc...${RESET}"
+cat > $PREFIX/bin/startvnc << 'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+proot-distro login kali -- bash -c "vncserver :1 -geometry 1280x720 -depth 24"
+echo "Abra o VNC Viewer e conecte-se a: 127.0.0.1:5901"
+EOF
+
+cat > $PREFIX/bin/stopvnc << 'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+proot-distro login kali -- bash -c "vncserver -kill :1"
+EOF
+
+chmod +x $PREFIX/bin/startvnc $PREFIX/bin/stopvnc
+
+# ===============================
+# 6. Menu interativo
+# ===============================
+echo -e "${YELLOW}[6/9] Criando menu interativo...${RESET}"
+cat > $PREFIX/bin/kali << 'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+while true; do
+CHOICE=$(whiptail --title "KALI TERMUX FULL PRO V3" --menu "Selecione uma opção" 20 70 12 \
+"1" "Abrir shell do Kali" \
+"2" "Iniciar VNC" \
+"3" "Parar VNC" \
+"4" "Instalar ferramentas extras" \
+"5" "Abrir MaxPhisher" \
+"6" "Abrir ZPhisher" \
+"0" "Sair" 3>&1 1>&2 2>&3)
+exitstatus=$?
+if [ $exitstatus != 0 ]; then
+    break
+fi
+
+case $CHOICE in
+1) proot-distro login kali ;;
+2) startvnc ;;
+3) stopvnc ;;
+4) proot-distro login kali -- bash -c "apt install -y kali-linux-large" ;;
+5) proot-distro login kali -- bash -c "cd ~/MaxPhisher && python3 maxphisher.py" ;;
+6) proot-distro login kali -- bash -c "cd ~/zphisher && bash zphisher.sh" ;;
+0) exit ;;
+esac
+done
+EOF
+chmod +x $PREFIX/bin/kali
+
+# ===============================
+# 7. Ferramentas extras
+# ===============================
+echo -e "${YELLOW}[7/9] Instalando ferramentas extras (MaxPhisher, ZPhisher, DarkFly)...${RESET}"
+proot-distro login kali -- bash -c "
+git clone https://github.com/khansaad1275/MaxPhisher
+git clone https://github.com/htr-tech/zphisher
+git clone https://github.com/Ranginang67/DarkFly-Tool
+git clone https://github.com/mishakorzik/AllHackingTools
+"
+
+# ===============================
+# 8. Instalação +100 ferramentas
+# ===============================
+echo -e "${YELLOW}[8/9] Instalando pacotes de pentest...${RESET}"
+proot-distro login kali -- bash -c "
+apt install -y nmap sqlmap hydra metasploit-framework wpscan nikto gobuster dirb cupp seclists sherlock responder hashcat aircrack-ng ettercap-text-only john wireshark-cli zphisher"
+
+# ===============================
+# 9. Finalização
+# ===============================
+echo -e "${GREEN}[9/9] INSTALAÇÃO COMPLETA!${RESET}"
+echo -e "${CYAN}Use os comandos:${RESET}"
+echo -e "  kali      → Menu interativo"
+echo -e "  startvnc  → Iniciar interface gráfica XFCE"
+echo -e "  stopvnc   → Parar interface gráfica"
